@@ -44,7 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->ShuntVoltRMSLine->setReadOnly(true);
 
     QTimer *GraphTimer = new QTimer(this);
-    GraphTimer->setInterval(500);
+    GraphTimer->setInterval(50);
     connect(GraphTimer, SIGNAL(timeout()), this, SLOT(UpdateGraph()));
 
     QTimer *RMSTimer = new QTimer(this);
@@ -60,10 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
     RMSTimer->start();
     CalibTimer->start();
 
-
-
-
-
+    // connect the slot which has to be called whenever new data is recieved
     connect( this, &MainWindow::NewDataRecieved ,this , &MainWindow::ParseNewData );
 }
 
@@ -410,7 +407,7 @@ void MainWindow::ParseNewData()
                   TemperaturePopulation, TemperaturePreviousTime,TemperaturePreviousTimeCounter);
         }
     }
-    if(RTDInit && temp.Counter >= 100 || CustomInit)
+    if((RTDInit && (temp.Counter >= 100)) || CustomInit)
     {
         Parse1Data(SensorData.RTDTemp,temp.RTDTemp,RTDDataCounter,10);
         if(RTDInit)
