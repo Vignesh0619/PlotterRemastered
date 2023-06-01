@@ -8,13 +8,17 @@ CONFIG += c++17
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+TARGET= TEMS
+
 SOURCES += \
+    baseplot.cpp \
     main.cpp \
     mainwindow.cpp \
     qcustomplot.cpp
 
 HEADERS += \
     Data.h \
+    baseplot.h \
     mainwindow.h \
     qcustomplot.h
 

@@ -42,7 +42,7 @@ typedef struct  {
     int32_t  GyroX;
     int32_t  GyroY;
     int32_t  GyroZ;
-    uint32_t  Pressure ;
+    int32_t  Pressure;
     int32_t  Temperature     ;
     int32_t  RTDTemp  ;
     int32_t  MagX;
@@ -62,107 +62,24 @@ typedef struct  {
 
 } Temp;
 typedef struct{
-    QVector<double>YAxisData1;
-    QVector<double>YAxisData2;
-    QVector<double>YAxisData3;
+    QVector<double> CustomYAxisData1;
+    QVector<double> CustomYAxisData2;
+    QVector<double> CustomYAxisData3;
 
 }Custom;
 
 int windowsize   ;// =10000;      //Window size of the graph displyed
 
-/*
-   Variable that are used to keep track of no.of data points added.
-   Once 100 data points are added to the plotdata their respective vector
-   is cleared.
-*/
+
 int Time_counter           ;
-int AccDataCounter         ;
-int GyroDataCounter        ;
-int PressureDataCounter    ;
-int TemperatureDataCounter ;
-int CustomDataCounter ;
-int CalibDataCounter;
-int VoltageDataCounter;
-int MagDataCounter;
-int RTDDataCounter;
-int OrientDataCounter;
-int CurrentDataCounter;
-
-/*
-  Variable that is used to count if data points equal to the size of the window
-  has been added or not
-*/
-
-int  GyroPopulation         ;
-int  AccPopulation          ;
-int  PressurePopulation      ;
-int  TemperaturePopulation  ;
-int  CustomPopulation  ;
-int  VoltagePopulation  ;
-int  MagPopulation  ;
-int  RTDPopulation  ;
-int  OrientPopulation  ;
-int  CurrentPopulation  ;
-
-/*
- Circular  buffer used to store the value of time.This buffer is used to
- remove old data points when a new data point  is added.
-*/
-QVector<double> AccPreviousTime;
-QVector<double> GyroPreviousTime;
-QVector<double> PressurePreviousTime;
-QVector<double> TemperaturePreviousTime;
-QVector<double> CustomPreviousTime;
-QVector<double> VoltagePreviousTime;
-QVector<double> MagPreviousTime;
-QVector<double> RTDPreviousTime;
-QVector<double> OrientPreviousTime;
-QVector<double> CurrentPreviousTime; //  Current as I not currently
-
-
-int GyroPreviousTimeCounter        ;
-int AccPreviousTimeCounter         ;
-int PressurePreviousTimeCounter    ;
-int TemperaturePreviousTimeCounter ;
-int CustomPreviousTimeCounter ;
-int VoltagePreviousTimeCounter ;
-int MagPreviousTimeCounter ;
-int RTDPreviousTimeCounter ;
-int OrientPreviousTimeCounter ;
-int CurrentPreviousTimeCounter ;
-
 
 double TimerOffset;   // stores the timer offset
 bool TimerOffsetCalculated;
 
+int CalibDataCounter;
 
 bool StartedPlotting = false; // set to true once the user clicks start in the gui. True indicates that plotting has started
 
-/*
- is set to true it indicates that the respective plot has been populated with a data
- points equal to the window size
-*/
-bool AccPopulated          ;
-bool GyroPopulated         ;
-bool PressurePopulated     ;
-bool TemperaturePopulated  ;
-bool CustomPopulated  ;
-bool VoltagePopulated;
-bool MagPopulated;
-bool RTDPopulated;
-bool OrientPopulated;
-bool CurrentPopulated;
-
-
-bool AccInit   = false;
-bool GyroInit  = false;
-bool MagInit   = false;
-bool PressureInit = false;
-bool TemperatureInit  = false;
-bool VoltageInit    = false;
-bool RTDInit = false;
-bool OrientInit = false;
-bool CurrentInit = false;
 
 bool CustomInit  = false;
 int Custom1Init = false;

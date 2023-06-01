@@ -6,62 +6,57 @@
 Sensor SensorData;
 Temp temp;
 Custom CustomData;
-bool Started  ;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
 
-    ui->setupUi(this);
+ ui->setupUi(this);
+
+ CustomMsgBox = new QMessageBox(this);
+ QPushButton *btnOk =  CustomMsgBox->addButton( "OK", QMessageBox::RejectRole );
 
 
-    PressurePlot    = this->ui->PressurePlotWidget;
-    TemperaturePlot = this->ui->TemperaturePlotWidget;
-    VoltagePlot     = this->ui->VoltagePlotWidget;
-    AccPlot         = this->ui->AccPlotWidget;
-    GyroPlot        = this->ui->GyroPlotWidget;
-    OrientPlot      = this->ui->OrientPlotWidget;
-    CustomPlot      = this->ui->CustomPlotWidget;
-    MagPlot         = this->ui->MagPlotWidget;
-    RTDPlot         = this->ui->RTDPlotWidget;
-    CurrentPlot     = this->ui->CurrentPlotWidget;
+ PressureGraph.Plot      = this->ui->PressurePlotWidget;
+ InternalTempGraph.Plot  = this->ui->TemperaturePlotWidget;
+ ExternalTempGraph.Plot  = this->ui->RTDPlotWidget;
+ CurrentGraph.Plot       = this->ui->CurrentPlotWidget;
 
-    ui->RMSLengthLine->setPlaceholderText("Enter a non-zero positive whole number as the RMSLength");
-    ui->RMSLengthLine->setText("100");
+ VoltageGraph.Plot       = this->ui->VoltagePlotWidget;
 
-    ui->WindowSizeLine->setPlaceholderText("Enter a non-zero positive whole number as the WindowSize");
-    ui->WindowSizeLine->setText("10000");
+ AccGraph.Plot           = this->ui->AccPlotWidget;
+ GyroGraph.Plot          = this->ui->GyroPlotWidget;
+ OrientGraph.Plot        = this->ui->OrientPlotWidget;
+ MagGraph.Plot           = this->ui->MagPlotWidget;
 
-    ui->IPAddrLine->setReadOnly(true);
-    ui->IPAddrLine->setText("192.168.5.132");
+ CustomGraph.Plot      = this->ui->CustomPlotWidget;
 
-    ui->PortNoLine->setText("2356");
+ ui->RMSLengthLine->setPlaceholderText("Enter a non-zero positive whole number as the RMSLength");
+ ui->RMSLengthLine->setText("100");
 
-    ui->PressureRMSLine->setReadOnly(true);
-    ui->TemperatureRMSLine->setReadOnly(true);
-    ui->RTDRMSLine->setReadOnly(true);
-    ui->BusVoltRMSLine->setReadOnly(true);
-    ui->ShuntVoltRMSLine->setReadOnly(true);
+ ui->WindowSizeLine->setPlaceholderText("Enter a non-zero positive whole number as the WindowSize");
+ ui->WindowSizeLine->setText("500");
 
-    QTimer *GraphTimer = new QTimer(this);
-    GraphTimer->setInterval(50);
-    connect(GraphTimer, SIGNAL(timeout()), this, SLOT(UpdateGraph()));
+ ui->IPAddrLine->setReadOnly(true);
+ ui->IPAddrLine->setText("192.168.5.132");
 
-    QTimer *RMSTimer = new QTimer(this);
-    RMSTimer->setInterval(200);
-    connect(RMSTimer, SIGNAL(timeout()), this, SLOT(UpdateRMS()));
+ ui->PortNoLine->setText("2198");
 
-    QTimer *CalibTimer = new QTimer(this);
-    CalibTimer->setInterval(250);
-    connect(CalibTimer, SIGNAL(timeout()), this, SLOT(UpdateCalibScore()));
+ QTimer *GraphTimer = new QTimer(this);
+ GraphTimer->setInterval(50);
+ connect(GraphTimer, SIGNAL(timeout()), this, SLOT(UpdateGraph()));
 
+ QTimer *CalibTimer = new QTimer(this);
+ CalibTimer->setInterval(250);
+ connect(CalibTimer, SIGNAL(timeout()), this, SLOT(UpdateCalibScore()));
 
-    GraphTimer->start();
-    RMSTimer->start();
-    CalibTimer->start();
+ GraphTimer->start();  
+ CalibTimer->start();
 
     // connect the slot which has to be called whenever new data is recieved
-    connect( this, &MainWindow::NewDataRecieved ,this , &MainWindow::ParseNewData );
+ connect( this, &MainWindow::NewDataRecieved ,this , &MainWindow::ParseNewData );
+
 }
 
 MainWindow::~MainWindow()
@@ -69,235 +64,14 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::Setup1Plot(QCustomPlot *myPlot, QString GraphName, QString XAxisLabel, QString YAxisLabel, QSharedPointer<QCPGraphDataContainer> PlotData)
-{
-    myPlot->addGraph();
-    myPlot->graph(0)->setName(GraphName);
-    myPlot->graph(0)->setPen(QPen(Qt::red));
-    myPlot->graph(0)->setLineStyle(QCPGraph::lsLine);
-    myPlot->graph(0)->setData(PlotData);
-    
-    myPlot->xAxis->setLabel(XAxisLabel);
-    myPlot->yAxis->setLabel(YAxisLabel);
-
-    myPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    myPlot->legend->setVisible(true);
-    myPlot->legend->setBrush(QBrush(QColor(255,255,255,150)));
-    myPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
-}
-
-void MainWindow::Setup2Plot(QCustomPlot *myPlot, QString Graph1Name, QString Graph2Name, QString XAxisLabel, QString YAxisLabel, QSharedPointer<QCPGraphDataContainer> Plot1Data, QSharedPointer<QCPGraphDataContainer> Plot2Data)
-{
-  //graph start from zero but for readability purposes we have it as graph1 name graph2 name etc
-
-    myPlot->addGraph();
-    myPlot->graph(0)->setName(Graph1Name);
-    myPlot->graph(0)->setPen(QPen(Qt::red));
-    myPlot->graph(0)->setLineStyle(QCPGraph::lsLine);
-    myPlot->graph(0)->setData(Plot1Data);
-
-    myPlot->addGraph();
-    myPlot->graph(1)->setName(Graph2Name);
-    myPlot->graph(1)->setPen(QPen(Qt::blue));
-    myPlot->graph(1)->setLineStyle(QCPGraph::lsLine);
-    myPlot->graph(1)->setData(Plot2Data);
-
-    myPlot->xAxis->setLabel(XAxisLabel);
-    myPlot->yAxis->setLabel(YAxisLabel);
-
-    myPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    myPlot->legend->setVisible(true);
-    myPlot->legend->setBrush(QBrush(QColor(255,255,255,150)));
-    myPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
-
-}
-
-void MainWindow::Setup3Plot(QCustomPlot *myPlot, QString Graph1Name, QString Graph2Name, QString Graph3Name, QString XAxisLabel, QString YAxisLabel, QSharedPointer<QCPGraphDataContainer> Plot1Data, QSharedPointer<QCPGraphDataContainer> Plot2Data, QSharedPointer<QCPGraphDataContainer> Plot3Data)
-{
-    myPlot->addGraph();
-    myPlot->graph(0)->setName(Graph1Name);
-    myPlot->graph(0)->setPen(QPen(Qt::red));
-    myPlot->graph(0)->setLineStyle(QCPGraph::lsLine);
-    myPlot->graph(0)->setData(Plot1Data);
-
-    myPlot->addGraph();
-    myPlot->graph(1)->setName(Graph2Name);
-    myPlot->graph(1)->setPen(QPen(Qt::blue));
-    myPlot->graph(1)->setLineStyle(QCPGraph::lsLine);
-    myPlot->graph(1)->setData(Plot2Data);
-
-    myPlot->addGraph();
-    myPlot->graph(2)->setName(Graph3Name);
-    myPlot->graph(2)->setPen(QPen(Qt::green));
-    myPlot->graph(2)->setLineStyle(QCPGraph::lsLine);
-    myPlot->graph(2)->setData(Plot3Data);
-
-    myPlot->xAxis->setLabel(XAxisLabel);
-    myPlot->yAxis->setLabel(YAxisLabel);
-
-    myPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    myPlot->legend->setVisible(true);
-    myPlot->legend->setBrush(QBrush(QColor(255,255,255,150)));
-    myPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignLeft|Qt::AlignTop);
-
-}
-
-
-
-void MainWindow::Parse1Data(QVector<double> &SensorValue, uint32_t temp, int &DataCounter, int ConversionFactor)
-{
-
-    if(DataCounter == 100)
-    {
-        DataCounter =0;
-        SensorValue.clear();
-    }
-    SensorValue.append( ((double)temp)/ConversionFactor);
-    DataCounter++;
-}
-
-void MainWindow::Parse2Data(QVector<double> &SensorValue1, QVector<double> &SensorValue2, uint32_t temp1,
-                            uint32_t temp2, int &DataCounter, int ConversionFactor1, int ConversionFactor2)
-{
-    if(DataCounter == 100)
-    {
-        DataCounter =0;
-        SensorValue1.clear();
-        SensorValue2.clear();
-    }
-    SensorValue1.append( ((double)temp1)/ConversionFactor1); // dividing by 100000 to convert from Pa to bar
-    SensorValue2.append( ((double)temp2)/ConversionFactor2); // dividing by 100000 to convert from Pa to bar
-    DataCounter++;
-
-}
-
-void MainWindow::Parse3Data(QVector<double> &SensorValue1, QVector<double> &SensorValue2, QVector<double> &SensorValue3, int32_t temp1, int32_t temp2, int32_t temp3, int &DataCounter, int ConversionFactor1, int ConversionFactor2, int ConversionFactor3)
-{
-    if(DataCounter == 100)
-    {
-        DataCounter =0;
-        SensorValue1.clear();
-        SensorValue2.clear();
-        SensorValue3.clear();
-    }
-    SensorValue1.append( ((double)temp1)/ConversionFactor1); // dividing by 100000 to convert from Pa to bar
-    SensorValue2.append( ((double)temp2)/ConversionFactor2); // dividing by 100000 to convert from Pa to bar
-    SensorValue3.append( ((double)temp3)/ConversionFactor3); // dividing by 100000 to convert from Pa to bar
-    DataCounter++;
-}
-
-
-
-void MainWindow::Plot1Data(QSharedPointer<QCPGraphDataContainer> PlotData,QVector<double> &XAxisData, QVector<double> &YAxisData,
-                           bool &Populated, int &Population, QVector<double> &PreviousTime, int &PreviousTimeCounter)
-{
-    if(Populated)
-    {
-        if(PreviousTimeCounter == windowsize)
-            PreviousTimeCounter = 0;
-
-        PlotData->remove(PreviousTime.at(PreviousTimeCounter));// this is done to remove old data points when a new data points is availale
-        PreviousTime.replace(PreviousTimeCounter,XAxisData.last());// replace the oldest value in array with the latest value
-        PreviousTimeCounter++;
-        PlotData->add(QCPGraphData(XAxisData.last(),YAxisData.last()));
-    }
-    else
-    {
-        PlotData->add(QCPGraphData(XAxisData.last(),YAxisData.last()));
-        PreviousTime.append(XAxisData.last());  // PreviousTime is a array to store to value
-        PreviousTimeCounter++;
-        Population++;
-        if(Population >= windowsize)// check if we have 1000 data points in our graph if we do start clearing the oldest value
-            Populated=true;
-    }
-}
-
-void MainWindow::Plot2Data(QSharedPointer<QCPGraphDataContainer> Plot1Data, QSharedPointer<QCPGraphDataContainer> Plot2Data, QVector<double> &XAxisData, QVector<double> &YAxisData1, QVector<double> &YAxisData2, bool &Populated, int &Population, QVector<double> &PreviousTime, int &PreviousTimeCounter)
-{
-    if(Populated)
-    {
-        if(PreviousTimeCounter == windowsize)
-            PreviousTimeCounter = 0;
-
-        Plot1Data->remove(PreviousTime.at(PreviousTimeCounter));// this is done to remove old data points when a new data points is availale
-        Plot2Data->remove(PreviousTime.at(PreviousTimeCounter));// this is done to remove old data points when a new data points is availale
-        PreviousTime.replace(PreviousTimeCounter,XAxisData.last());// replace the oldest value in array with the latest value
-        PreviousTimeCounter++;
-        Plot1Data->add(QCPGraphData(XAxisData.last(),YAxisData1.last()));
-        Plot2Data->add(QCPGraphData(XAxisData.last(),YAxisData2.last()));
-    }
-    else
-    {
-        Plot1Data->add(QCPGraphData(XAxisData.last(),YAxisData1.last()));
-        Plot2Data->add(QCPGraphData(XAxisData.last(),YAxisData2.last()));
-        PreviousTime.append(XAxisData.last());  // PreviousTime is a array to store to value
-        PreviousTimeCounter++;
-        Population++;
-        if(Population >= windowsize)// check if we have 1000 data points in our graph if we do start clearing the oldest value
-            Populated=true;
-    }
-}
-
-void MainWindow::Plot3Data(QSharedPointer<QCPGraphDataContainer> Plot1Data, QSharedPointer<QCPGraphDataContainer> Plot2Data, QSharedPointer<QCPGraphDataContainer> Plot3Data, QVector<double> &XAxisData, QVector<double> &YAxisData1, QVector<double> &YAxisData2, QVector<double> &YAxisData3, bool &Populated, int &Population, QVector<double> &PreviousTime, int &PreviousTimeCounter)
-{
-    if(Populated)
-    {
-        if(PreviousTimeCounter == windowsize)
-            PreviousTimeCounter = 0;
-
-        Plot1Data->remove(PreviousTime.at(PreviousTimeCounter));// this is done to remove old data points when a new data points is availale
-        Plot2Data->remove(PreviousTime.at(PreviousTimeCounter));// this is done to remove old data points when a new data points is availale
-        Plot3Data->remove(PreviousTime.at(PreviousTimeCounter));// this is done to remove old data points when a new data points is availale
-        PreviousTime.replace(PreviousTimeCounter,XAxisData.last());// replace the oldest value in array with the latest value
-        PreviousTimeCounter++;
-        Plot1Data->add(QCPGraphData(XAxisData.last(),YAxisData1.last()));
-        Plot2Data->add(QCPGraphData(XAxisData.last(),YAxisData2.last()));
-        Plot3Data->add(QCPGraphData(XAxisData.last(),YAxisData3.last()));
-    }
-    else
-    {
-        Plot1Data->add(QCPGraphData(XAxisData.last(),YAxisData1.last()));
-        Plot2Data->add(QCPGraphData(XAxisData.last(),YAxisData2.last()));
-        Plot3Data->add(QCPGraphData(XAxisData.last(),YAxisData3.last()));
-        PreviousTime.append(XAxisData.last());  // PreviousTime is a array to store to value
-        PreviousTimeCounter++;
-        Population++;
-        if(Population >= windowsize)// check if we have 1000 data points in our graph if we do start clearing the oldest value
-            Populated=true;
-    }
-}
-
-
-
-void MainWindow::CalculateRMS(QVector<double> &SensorValue, QVector<double> &SensorValueMS, double &SensorValueMSSum, int &RMSCounter)
-{
-    if(SensorValueMS.length() < 100 && SensorValue.length() !=0)
-    {
-        SensorValueMS.append( (SensorValue.last() * SensorValue.last()) /RMSLength );
-        SensorValueMSSum +=SensorValueMS.last();
-    }
-    if(SensorValueMS.length() >= 100)
-    {
-        if(RMSCounter == 100)
-            RMSCounter=0;
-        SensorValueMSSum= SensorValueMSSum - SensorValueMS.at(RMSCounter)+ (qPow(SensorValue.last(),2)  / RMSLength);
-        SensorValueMS.replace(RMSCounter,(qPow(SensorValue.last(),2)  / RMSLength));
-        RMSCounter++;
-    }
-}
-
-
-
 
 void MainWindow::readyRead()
 {
-    QNetworkDatagram datagram = socket->receiveDatagram();
-
-    if(datagram.data().count()) {
-        memcpy(&temp.Time, datagram.data(), sizeof(temp));
-    }
-
-    emit NewDataRecieved();
+   QNetworkDatagram datagram = socket->receiveDatagram();
+   if(datagram.data().count()) {
+       memcpy(&temp.Time, datagram.data(), sizeof(temp));
+   }
+   emit NewDataRecieved();
 }
 
 void MainWindow::ParseNewData()
@@ -345,118 +119,126 @@ void MainWindow::ParseNewData()
         Time_counter++;
     }
 
-    if(AccInit || CustomInit)
+    if(AccGraph.Started || CustomGraph.Started)
     {
-        Parse3Data(SensorData.AccX,SensorData.AccY,SensorData.AccZ,temp.AccX,temp.AccY,temp.AccZ,AccDataCounter,100,100,100);
-        if(AccInit)
-        Plot3Data(AccXPlotData,AccYPlotData,AccZPlotData,SensorData.Time,SensorData.AccX,SensorData.AccY,SensorData.AccZ,
-                  AccPopulated,AccPopulation,AccPreviousTime,AccPreviousTimeCounter);
-
+        AccGraph.ParseData(SensorData.AccX,SensorData.AccY,SensorData.AccZ,temp.AccX,temp.AccY,temp.AccZ);
+        if(AccGraph.Started)
+        AccGraph.PlotData(SensorData.Time,SensorData.AccX,SensorData.AccY,SensorData.AccZ);
     }
 
-    if(GyroInit||CustomInit)
+    if(GyroGraph.Started||CustomGraph.Started)
     {
-        Parse3Data(SensorData.GyroX,SensorData.GyroY,SensorData.GyroZ,temp.GyroX,temp.GyroY,temp.GyroZ,GyroDataCounter,100,100,100);
-        if(GyroInit)
-        Plot3Data(GyroXPlotData,GyroYPlotData,GyroZPlotData,SensorData.Time,SensorData.GyroX,SensorData.GyroY,SensorData.GyroZ,
-                  GyroPopulated,GyroPopulation,GyroPreviousTime,GyroPreviousTimeCounter);
+        GyroGraph.ParseData(SensorData.GyroX,SensorData.GyroY,SensorData.GyroZ,temp.GyroX,temp.GyroY,temp.GyroZ);
+        if(GyroGraph.Started)
+        GyroGraph.PlotData(SensorData.Time,SensorData.GyroX,SensorData.GyroY,SensorData.GyroZ);
+    }
+    if(MagGraph.Started|| CustomGraph.Started)
+    {
+        MagGraph.ParseData(SensorData.MagX,SensorData.MagY,SensorData.MagZ,temp.MagX,temp.MagY,temp.MagZ);
+        if(MagGraph.Started)
+        MagGraph.PlotData(SensorData.Time,SensorData.MagX,SensorData.MagY,SensorData.MagZ);
+    }
+    if(OrientGraph.Started||CustomGraph.Started)
+    {
+        OrientGraph.ParseData(SensorData.OrientX,SensorData.OrientY,SensorData.OrientZ,temp.OrientX,temp.OrientY,temp.OrientZ);
+        if(OrientGraph.Started)
+        OrientGraph.PlotData(SensorData.Time,SensorData.OrientX,SensorData.OrientY,SensorData.OrientZ);
+    }
+    if(VoltageGraph.Started || CustomGraph.Started)
+    {
+       VoltageGraph.ParseData(SensorData.BusVoltage,SensorData.ShuntVoltage,temp.Busvoltage,temp.Shuntvoltage);
+       if(VoltageGraph.Started)
+       {
+        VoltageGraph.CalculateRMS(SensorData.BusVoltage,SensorData.ShuntVoltage);
+        VoltageGraph.PlotData(SensorData.Time,SensorData.BusVoltage,SensorData.ShuntVoltage);
+       }
+    }
+    if(PressureGraph.Started|| CustomGraph.Started)
+    {
+        PressureGraph.ParseData(SensorData.Pressure,temp.Pressure);
+        if(PressureGraph.Started)
+        {
+        PressureGraph.CalculateRMS(SensorData.Pressure);
+        PressureGraph.PlotData(SensorData.Time,SensorData.Pressure);
+        }
+    }
+    if(InternalTempGraph.Started || CustomGraph.Started)
+    {
+        InternalTempGraph.ParseData(SensorData.Temperature, temp.Temperature);
+        if(InternalTempGraph.Started)
+        {
+        InternalTempGraph.CalculateRMS(SensorData.Temperature);
+        InternalTempGraph.PlotData(SensorData.Time,SensorData.Temperature);
+        }
+    }
+    if((ExternalTempGraph.Started && (temp.Counter%100 == 0)) || CustomGraph.Started)
+    {
+        ExternalTempGraph.ParseData(SensorData.RTDTemp,temp.RTDTemp);
+        if(ExternalTempGraph.Started)
+        {
+        ExternalTempGraph.PlotData(SensorData.Time,SensorData.RTDTemp);
+        ExternalTempGraph.CalculateRMS(SensorData.RTDTemp);
+        }
+    }
+    if(CurrentGraph.Started || CustomGraph.Started)
+    {
+        CurrentGraph.ParseData(SensorData.Current,temp.Current);
+        if(CurrentGraph.Started)
+        {
+        CurrentGraph.PlotData(SensorData.Time,SensorData.Current);
+        CurrentGraph.CalculateRMS(SensorData.Current);
+        }
+    }
+    if(CustomGraph.Started)
+    {
 
-    }
-    if(MagInit|| CustomInit)
-    {
-        Parse3Data(SensorData.MagX,SensorData.MagY,SensorData.MagZ,temp.MagX,temp.MagY,temp.MagZ,MagDataCounter,100,100,100);
-        if(MagInit)
-        Plot3Data(MagXPlotData,MagYPlotData,MagZPlotData,SensorData.Time,SensorData.MagX,SensorData.MagY,SensorData.MagZ,MagPopulated,
-                  MagPopulation,MagPreviousTime,MagPreviousTimeCounter);
-    }
-    if(OrientInit||CustomInit)
-    {
-        Parse3Data(SensorData.OrientX,SensorData.OrientY,SensorData.OrientZ,temp.OrientX,temp.OrientY,temp.OrientZ,OrientDataCounter,10,10,10);
-        if(OrientInit)
-        Plot3Data(OrientXPlotData,OrientYPlotData,OrientZPlotData,SensorData.Time,SensorData.OrientX,SensorData.OrientY,SensorData.OrientZ,
-                  OrientPopulated,OrientPopulation,OrientPreviousTime,OrientPreviousTimeCounter);
-    }
-    if(VoltageInit || CustomInit)
-    {
-        Parse2Data(SensorData.BusVoltage,SensorData.ShuntVoltage,temp.Busvoltage,temp.Shuntvoltage,VoltageDataCounter,100,100);
-        if(VoltageInit)
-        {
-        CalculateRMS(SensorData.BusVoltage,BusVoltMS,BusVoltMSSum,BusVoltRMSCounter);
-        CalculateRMS(SensorData.ShuntVoltage,ShuntVoltMS,ShuntVoltMSSum,ShuntVoltRMSCounter);
-        Plot2Data(BusVoltagePlotData,ShuntVoltagePlotData,SensorData.Time,SensorData.BusVoltage,SensorData.ShuntVoltage,VoltagePopulated,
-                  VoltagePopulation,VoltagePreviousTime,VoltagePreviousTimeCounter);
-        }
-    }
-    if(PressureInit|| CustomInit)
-    {
-        Parse1Data(SensorData.Pressure,temp.Pressure,PressureDataCounter,100000);
-        if(PressureInit)
-        {
-        CalculateRMS(SensorData.Pressure,PressureMS,PressureMSSum,PressureRMSCounter);
-        Plot1Data(PressurePlotData,SensorData.Time,SensorData.Pressure,PressurePopulated,
-                  PressurePopulation, PressurePreviousTime,PressurePreviousTimeCounter);
-        }
-    }
-    if(TemperatureInit || CustomInit)
-    {
-        Parse1Data(SensorData.Temperature,temp.Temperature,TemperatureDataCounter,10);
-        if(TemperatureInit)
-        {
-        CalculateRMS(SensorData.Temperature,TemperatureMS,TemperatureMSSum,TemperatureRMSCounter);
-        Plot1Data(TemperaturePlotData,SensorData.Time,SensorData.Temperature,TemperaturePopulated,
-                  TemperaturePopulation, TemperaturePreviousTime,TemperaturePreviousTimeCounter);
-        }
-    }
-    if((RTDInit && (temp.Counter >= 100)) || CustomInit)
-    {
-        Parse1Data(SensorData.RTDTemp,temp.RTDTemp,RTDDataCounter,10);
-        if(RTDInit)
-        {
-        Plot1Data(RTDPlotData,SensorData.Time,SensorData.RTDTemp,RTDPopulated,RTDPopulation,RTDPreviousTime,RTDPreviousTimeCounter);
-        CalculateRMS(SensorData.RTDTemp,RTDMS,RTDMSSum,RTDRMSCounter);
-        }
-    }
-    if(CurrentInit || CustomInit)
-    {
-        Parse1Data(SensorData.Current,temp.Current,CurrentDataCounter,10);
-        if(CurrentInit)
-        {
-        Plot1Data(CurrentPlotData,SensorData.Time,SensorData.Current,CurrentPopulated,CurrentPopulation,CurrentPreviousTime,CurrentPreviousTimeCounter);
-        CalculateRMS(SensorData.Current,CurrentMS,CurrentMSSum,CurrentRMSCounter);
-        }
-    }
-    if(CustomInit)
-    {
-        ParsedData.insert(0,SensorData.AccX);
-        ParsedData.insert(1,SensorData.AccY);
-        ParsedData.insert(2,SensorData.AccZ);
-        ParsedData.insert(3,SensorData.GyroX);
-        ParsedData.insert(4,SensorData.GyroY);
-        ParsedData.insert(5,SensorData.GyroZ);
-        ParsedData.insert(6,(SensorData.Pressure));
-        ParsedData.insert(7,(SensorData.Temperature));
+      ParsedData.insert( 0,DefaultValue);
+      ParsedData.insert( 1, SensorData.AccX);
+      ParsedData.insert( 2, SensorData.AccY);
+      ParsedData.insert( 3, SensorData.AccZ);
+      ParsedData.insert( 4, SensorData.GyroX);
+      ParsedData.insert( 5, SensorData.GyroY);
+      ParsedData.insert( 6, SensorData.GyroZ);
+      ParsedData.insert( 7, SensorData.MagX);
+      ParsedData.insert( 8, SensorData.MagY);
+      ParsedData.insert( 9, SensorData.MagZ);
+      ParsedData.insert(10, SensorData.OrientX);
+      ParsedData.insert(11, SensorData.OrientY);
+      ParsedData.insert(12, SensorData.OrientZ);
+      ParsedData.insert(13, SensorData.Pressure);
+      ParsedData.insert(14, SensorData.Temperature);
+      ParsedData.insert(15, SensorData.RTDTemp);
+      ParsedData.insert(16, SensorData.Current);
+      ParsedData.insert(17, SensorData.BusVoltage);
+      ParsedData.insert(18, SensorData.ShuntVoltage);
 
-        if(Custom3Init)
+         if(Custom3Init && CustomGraph.Started)
+         {
+          if(CustomGraph.DataCounter >= 100)
         {
-         memcpy( &CustomData.YAxisData1,&ParsedData.at(YAxisCustom1), sizeof(ParsedData.at(YAxisCustom1)));
-         memcpy( &CustomData.YAxisData2,&ParsedData.at(YAxisCustom2), sizeof(ParsedData.at(YAxisCustom2)));
-         memcpy( &CustomData.YAxisData3,&ParsedData.at(YAxisCustom3), sizeof(ParsedData.at(YAxisCustom3)));
-
-         Plot3Data(CustomPlotData1,CustomPlotData2,CustomPlotData3,SensorData.Time,CustomData.YAxisData1,CustomData.YAxisData2,CustomData.YAxisData3,
-                  CustomPopulated,CustomPopulation,CustomPreviousTime,CustomPreviousTimeCounter);
+          CustomData.CustomYAxisData3.clear();
+          CustomData.CustomYAxisData2.clear();
+          CustomData.CustomYAxisData1.clear();
+          CustomGraph.DataCounter=0;
         }
-        if(Custom2Init)
-        {
-         memcpy( &CustomData.YAxisData1,&ParsedData.at(YAxisCustom1), sizeof(ParsedData.at(YAxisCustom1)));
-         memcpy( &CustomData.YAxisData2,&ParsedData.at(YAxisCustom2), sizeof(ParsedData.at(YAxisCustom2)));
-         Plot2Data(CustomPlotData1,CustomPlotData2,SensorData.Time,CustomData.YAxisData1,CustomData.YAxisData2,CustomPopulated,
-                  CustomPopulation,CustomPreviousTime,CustomPreviousTimeCounter);
-        }
-        if(Custom1Init)
-        {
-         memcpy( &CustomData.YAxisData1,&ParsedData.at(YAxisCustom1), sizeof(ParsedData.at(YAxisCustom1)));
-         Plot1Data(CustomPlotData1,SensorData.Time,CustomData.YAxisData1,CustomPopulated,CustomPopulation,CustomPreviousTime,CustomPreviousTimeCounter);
-        }
+          CustomData.CustomYAxisData1.append((float)(ParsedData.at(YAxisCustom1)).last());
+          CustomData.CustomYAxisData2.append((float)(ParsedData.at(YAxisCustom2)).last());
+          CustomData.CustomYAxisData3.append((float)(ParsedData.at(YAxisCustom3)).last());
+          CustomGraph.DataCounter++;
+          CustomGraph.PlotData(SensorData.Time,CustomData.CustomYAxisData1,CustomData.CustomYAxisData2,CustomData.CustomYAxisData3);
+         }
+         if(Custom2Init && CustomGraph.Started)
+         {
+          CustomData.CustomYAxisData1.append((float)(ParsedData.at(YAxisCustom1)).last());
+          CustomData.CustomYAxisData2.append((float)(ParsedData.at(YAxisCustom2)).last());
+          CustomGraph.PlotData(SensorData.Time,CustomData.CustomYAxisData1,CustomData.CustomYAxisData2);
+         }
+         if(Custom1Init && CustomGraph.Started)
+         {
+          CustomData.CustomYAxisData1.append((float)(ParsedData.at(YAxisCustom1)).last());
+          CustomGraph.PlotData(SensorData.Time,CustomData.CustomYAxisData1);
+         }
+      ParsedData.clear();
 
     }
 
@@ -473,113 +255,74 @@ void MainWindow::ParseNewData()
 */
 void MainWindow::UpdateGraph()
 {
-    if(AccInit)
+    if(AccGraph.Started)
     {
-        AccPlot->rescaleAxes();
-        AccPlot->replot();
-        AccPlot->update();
+        AccGraph.Plot->rescaleAxes();
+        AccGraph.Plot->replot();
+        AccGraph.Plot->update();
     }
-    if(GyroInit)
+    if(GyroGraph.Started)
     {
-        GyroPlot->rescaleAxes();
-        GyroPlot->replot();
-        GyroPlot->update();
+        GyroGraph.Plot->rescaleAxes();
+        GyroGraph.Plot->replot();
+        GyroGraph.Plot->update();
     }
-    if(MagInit)
+    if(MagGraph.Started)
     {
-        MagPlot->rescaleAxes();
-        MagPlot->replot();
-        MagPlot->update();
+        MagGraph.Plot->rescaleAxes();
+        MagGraph.Plot->replot();
+        MagGraph.Plot->update();
     }
-    if(TemperatureInit)
+    if(InternalTempGraph.Started)
     {
-        TemperaturePlot->rescaleAxes();
-        TemperaturePlot->replot();
-        TemperaturePlot->update();
+        InternalTempGraph.Plot->rescaleAxes();
+        InternalTempGraph.Plot->replot();
+        InternalTempGraph.Plot->update();
     }
-    if(PressureInit)
+    if(PressureGraph.Started)
     {
-        PressurePlot->rescaleAxes();
-        PressurePlot->replot();
-        PressurePlot->update();
+        PressureGraph.Plot->rescaleAxes();
+        PressureGraph.Plot->replot();
+        PressureGraph.Plot->update();
     }
-    if(CustomInit)
+    if(CustomGraph.Started)
     {
-        CustomPlot->rescaleAxes();
-        CustomPlot->replot();
-        CustomPlot->update();
+        CustomGraph.Plot->rescaleAxes();
+        CustomGraph.Plot->replot();
+        CustomGraph.Plot->update();
     }
-    if(VoltageInit)
+    if( VoltageGraph.Started)
     {
-        VoltagePlot->rescaleAxes();
-        VoltagePlot->replot();
-        VoltagePlot->update();
+        VoltageGraph.Plot->rescaleAxes();
+        VoltageGraph.Plot->replot();
+        VoltageGraph.Plot->update();
     }
-    if(RTDInit)
+    if(ExternalTempGraph.Started)
     {
-        RTDPlot->rescaleAxes();
-        RTDPlot->replot();
-        RTDPlot->update();
+        ExternalTempGraph.Plot->rescaleAxes();
+        ExternalTempGraph.Plot->replot();
+        ExternalTempGraph.Plot->update();
     }
-    if(OrientInit)
+    if(OrientGraph.Started)
     {
-        OrientPlot->rescaleAxes();
-        OrientPlot->replot();
-        OrientPlot->update();
+        OrientGraph.Plot->rescaleAxes();
+        OrientGraph.Plot->replot();
+        OrientGraph.Plot->update();
     }
-    if(CurrentInit)
+    if( CurrentGraph.Started)
     {
-        CurrentPlot->rescaleAxes();
-        CurrentPlot->replot();
-        CurrentPlot->update();
+        CurrentGraph.Plot->rescaleAxes();
+        CurrentGraph.Plot->replot();
+        CurrentGraph.Plot->update();
     }
 
 }
-/*
-  This is the function that is called when RMSTime is timed out.
-  This fucntion updates the RMS value displayed in the text box
-  every 200ms. Rate of update can be increased. The value can be
-  decreased but user might not be able to see the value getting
-  updated if it decreased.
-*/
 
-void MainWindow::UpdateRMS()
-{
-    if(PressureMS.length() == 100)
-    {
-        PressureRMS=sqrt(PressureMSSum);
-        ui->PressureRMSLine->setText(QString::number(PressureRMS));
-    }
-    if(TemperatureMS.length() == 100)
-    {
-        TemperatureRMS=sqrt(TemperatureMSSum);
-        ui->TemperatureRMSLine->setText(QString::number(TemperatureRMS));
-    }
-    if(RTDMS.length() == 100)
-    {
-        RTDRMS=sqrt(RTDMSSum);
-        ui->RTDRMSLine->setText(QString::number(RTDRMS));
-    }
-    if(BusVoltMS.length() == 100)
-    {
-        BusVoltRMS=sqrt(BusVoltMSSum);
-        ui->BusVoltRMSLine->setText(QString::number(BusVoltRMS));
-    }
-    if(ShuntVoltMS.length() == 100)
-    {
-        ShuntVoltRMS=sqrt(ShuntVoltMSSum);
-        ui->ShuntVoltRMSLine->setText(QString::number(ShuntVoltRMS));
-    }
-    if(CurrentMS.length() == 100)
-    {
-        CurrentRMS=sqrt(ShuntVoltMSSum);
-        ui->CurrentRMSLine->setText(QString::number(CurrentRMS));
-    }
-}
+
 
 void MainWindow::UpdateCalibScore()
 {
-    if(Started && SensorData.SysCalib.length() > 0)
+    if(SensorData.SysCalib.length() > 0)
     {
         ui->AccelCalibLine->setText(QString::number(SensorData.AccCalib.last()));
         ui->GyroCalibLine->setText(QString::number(SensorData.GyroCalib.last()));
@@ -588,56 +331,53 @@ void MainWindow::UpdateCalibScore()
     }
 }
 
+
 /*
  Slots to get user input of which data to plot
 */
 void MainWindow::on_GyroBox_toggled(bool checked)
 {
-    GyroInit = checked;
+    GyroGraph.Init = checked;
 }
 
 void MainWindow::on_AccBox_toggled(bool checked)
 {
-    AccInit = checked;
+    AccGraph.Init = checked;
 }
 
 void MainWindow::on_TempBox_toggled(bool checked)
 {
-    TemperatureInit = checked;
+    InternalTempGraph.Init = checked;
 }
 
 void MainWindow::on_PressBox_toggled(bool checked)
 {
-    PressureInit = checked;
+    PressureGraph.Init = checked;
 }
 
-void MainWindow::on_CustomBox_toggled(bool checked)
-{
-    CustomInit=checked;
-}
 
 void MainWindow::on_VoltBox_toggled(bool checked)
 {
-    VoltageInit = checked;
+    VoltageGraph.Init = checked;
 }
 
 void MainWindow::on_MagBox_toggled(bool checked)
 {
-    MagInit = checked;
+    MagGraph.Init = checked;
 }
 
 void MainWindow::on_RTDBox_toggled(bool checked)
 {
-    RTDInit = checked;
+    ExternalTempGraph.Init = checked;
 }
 void MainWindow::on_OrientBox_toggled(bool checked)
 {
-    OrientInit = checked;
+    OrientGraph.Init = checked;
 }
 
 void MainWindow::on_CurrentBox_toggled(bool checked)
 {
-    CurrentInit = checked;
+    CurrentGraph.Init = checked;
 }
 
 
@@ -662,89 +402,160 @@ void MainWindow::on_PortNoLine_textChanged(const QString &arg1)
 
 void MainWindow::on_Start_clicked()
 {
-    if(Started && windowsize > 0 && RMSLength > 0){
-        QMessageBox *RebindMsgBox = new QMessageBox(this);
-        RebindMsgBox->setIcon( QMessageBox::Warning );
-        RebindMsgBox->setText("Plotting has started!!!!!!!");
-        RebindMsgBox->setDetailedText("Ploter has started to plot the data switch to the respective tab to view the plot");
-        QPushButton *btnCancel =  RebindMsgBox->addButton( "OK", QMessageBox::RejectRole );
-        RebindMsgBox->setAttribute(Qt::WA_DeleteOnClose); // delete pointer after close
-        RebindMsgBox->exec();
-    }
-    if((!Started ) & (windowsize > 0) & (RMSLength > 0) & (Custom1Init+Custom2Init+Custom3Init > 1 ))
+
+    if((windowsize > 0) && (RMSLength > 0) && (Custom1Init+Custom2Init+Custom3Init > 1 ))
     {
-        QMessageBox *InvalidMsgBox = new QMessageBox(this);
-        InvalidMsgBox->setIcon( QMessageBox::Critical );
-        InvalidMsgBox->setText("Invalid Custom Data Plot Selection");
-        InvalidMsgBox->setDetailedText("Choose either CustomPlot Data1 or CustomPlot Data1 and Data2 or CustomPlot Data 1,2 and 3 ");
-        QPushButton *btnOk =  InvalidMsgBox->addButton( "OK", QMessageBox::RejectRole );
-        InvalidMsgBox->setAttribute(Qt::WA_DeleteOnClose); // delete pointer after close
-        InvalidMsgBox->show();
+        CustomMsgBox->setIcon( QMessageBox::Critical );
+        CustomMsgBox->setText("Invalid Custom Data Plot Selection");
+        CustomMsgBox->setDetailedText("Choose either CustomPlot Data1 or CustomPlot Data1 and Data2 or CustomPlot Data 1,2 and 3 ");
+        CustomMsgBox->show();
     }
-    if((!Started ) & (windowsize > 0) & (RMSLength > 0) & (Custom1Init+Custom2Init+Custom3Init <= 1 ))
+    if((windowsize > 0) && (RMSLength > 0) && (Custom1Init+Custom2Init+Custom3Init <= 1 ))
    {
-    if(AccInit)
-        Setup3Plot(AccPlot,"Acceleration along X","Acceleration along Y","Acceleration along Z","Time in secs","Acceleration in m/s^2",
-                   AccXPlotData,AccYPlotData,AccZPlotData);
 
-    if(GyroInit)
-        Setup3Plot(GyroPlot,"Rotation along X","Rotation along Y","Rotation along Z","Time in secs","Rotation  in deg/s",
-                   GyroXPlotData,GyroYPlotData,GyroZPlotData);
-    if(MagInit)
-        Setup3Plot(MagPlot,"Magnetic field strength along X","Magnetic field strength along Y","Magnetic field strength along Z",
-                   "Time in secs","Magnetic field strength  in uT",MagXPlotData,MagYPlotData,MagZPlotData);
-    if(OrientInit)
-        Setup3Plot(OrientPlot,"Orientation wrt X","Orientation wrt Y","Orientation wrt Z","Time in secs",
-                   "Orientation in degree",OrientXPlotData,OrientYPlotData,OrientZPlotData);
-    if(PressureInit)
-        Setup1Plot(PressurePlot,"Ambient Pressure","Time in secs","Pressure in bar",PressurePlotData);
+    if(AccGraph.Init && !AccGraph.Started)
+        AccGraph.GraphParameters("X","Y","Z","Time in secs","Acceleration in m/s^2",100,windowsize,RMSLength);
 
-    if(TemperatureInit)
-        Setup1Plot(TemperaturePlot,"Ambient Temperature","Time in secs","Temperature in  celsius",TemperaturePlotData);
+    if(GyroGraph.Init && !GyroGraph.Started)
+        GyroGraph.GraphParameters("X","Y","Z","Time in secs","Rotation  in deg/s",100,windowsize,RMSLength);
 
-    if(VoltageInit)
-        Setup2Plot(VoltagePlot,"Bus Voltage","Shunt Voltage","Time in secs","Voltage in  volts",BusVoltagePlotData,ShuntVoltagePlotData);
-    if(RTDInit)
-        Setup1Plot(RTDPlot," External Probe Temperature","Time in secs","Temperature in celsius",RTDPlotData);
-    if(CurrentInit)
-        Setup1Plot(CurrentPlot,"Current","Time in secs","Current in amps",CurrentPlotData);
-    if(CustomInit)
+    if(MagGraph.Init && !MagGraph.Started)
+        MagGraph.GraphParameters("X","Y","Z","Time in secs","Magnetic field strength  in uT",100,windowsize,RMSLength);
+
+    if(OrientGraph.Init && !OrientGraph.Started)
+       OrientGraph.GraphParameters("X","Y","Z","Time in secs","Orientation in degree",10,windowsize,RMSLength);
+
+    if(PressureGraph.Init && !PressureGraph.Started)
+        PressureGraph.GraphParameters("Ambinet Pressure","Time in second","Pressure in bar",100000,windowsize,RMSLength);
+
+    if(InternalTempGraph.Init && !InternalTempGraph.Started)
+        InternalTempGraph.GraphParameters("Ambient Temperature","Time in second","Temperature in degree celsisu",10,windowsize,RMSLength);
+
+    if(VoltageGraph.Init && !VoltageGraph.Started)
+        VoltageGraph.GraphParameters("Bus Voltage","Shunt Voltage","Time in secs","Voltage in  volts",100,windowsize,RMSLength);
+
+    if(ExternalTempGraph.Init && !ExternalTempGraph.Started)
+        ExternalTempGraph.GraphParameters(" External Probe Temperature"," Time in secs"," Temperature in celsius ",10,windowsize,RMSLength);
+
+    if(CurrentGraph.Init && !CurrentGraph.Started)
+        CurrentGraph.GraphParameters("Current","Time in secs","Current in amps",100000,windowsize,RMSLength);
+
+    if((Custom1Init || Custom2Init || Custom3Init) && !CustomGraph.Started && !CustomGraph.Init)
     {
-        if(Custom1Init)
-            Setup1Plot(CustomPlot,YAxisCustomLabel1,"Time in secs","",CustomPlotData1);
-        if(Custom2Init)
-            Setup2Plot(CustomPlot,YAxisCustomLabel1,YAxisCustomLabel2,"Time in secs","",CustomPlotData1,CustomPlotData2);
-        if(Custom3Init)
-            Setup3Plot(CustomPlot,YAxisCustomLabel1,YAxisCustomLabel2,YAxisCustomLabel3,"Time in secs","",CustomPlotData1,CustomPlotData2,CustomPlotData3);
-    }
+      AccGraph.ConversionFactor=100;
+      GyroGraph.ConversionFactor=100;
+      MagGraph.ConversionFactor=100;
+      OrientGraph.ConversionFactor=10;  
+      VoltageGraph.ConversionFactor=100;  
+      PressureGraph.ConversionFactor=100000;
+      InternalTempGraph.ConversionFactor=10;
+      ExternalTempGraph.ConversionFactor=10;
+      CurrentGraph.ConversionFactor=100000;
+
+      if(Custom1Init)
+      {
+        if( YAxisCustom1 != 0 && YAxisCustom2 == 0 && YAxisCustom3 == 0)
+          {
+            CustomGraph.GraphParameters(YAxisCustomLabel1,"Time in secs","",1,windowsize,RMSLength);
+            error=false;
+            CustomGraph.Init=true;
+          }
+        else 
+        {
+        CustomMsgBox->setIcon( QMessageBox::Critical );
+        CustomMsgBox->setText("Invalid paramters selection");
+        CustomMsgBox->setDetailedText("");
+        CustomMsgBox->exec();
+        error=true;
+        }
+      }
+      if(Custom2Init)
+      {
+        if( YAxisCustom1 != 0 && YAxisCustom2 != 0 && YAxisCustom3 == 0 )
+        {
+          CustomGraph.GraphParameters(YAxisCustomLabel1,YAxisCustomLabel2,"Time in secs","",1,windowsize,RMSLength);
+         if(YAxisCustom1 == YAxisCustom2 )
+        {
+         CustomMsgBox->setIcon( QMessageBox::NoIcon );
+         CustomMsgBox->setText("The selected Parameters are same");
+         CustomMsgBox->setDetailedText("");
+         CustomMsgBox->exec();
+        }
+          error=false;
+          CustomGraph.Init=true;
+        } 
+        else 
+        {
+        // CustomMsgBox->setIcon( QMessageBox::Critical );
+        // CustomMsgBox->setText("Invalid paramters selection");
+        // CustomMsgBox->setDetailedText("");
+        // CustomMsgBox->exec();
+        error=true; 
+        }       
+      }
+      if(Custom3Init)
+      {
+        if( YAxisCustom1 != 0 && YAxisCustom2 != 0 && YAxisCustom3 != 0 )
+        {
+          CustomGraph.GraphParameters(YAxisCustomLabel1,YAxisCustomLabel2,YAxisCustomLabel3,"Time in secs","",1,windowsize,RMSLength);
+          error=false;
+          CustomGraph.Init=true;
+          if(YAxisCustom1 == YAxisCustom2  )
+         {
+          CustomMsgBox->setIcon( QMessageBox::NoIcon );
+          CustomMsgBox->setText("The selected Parameters are same");
+          CustomMsgBox->setDetailedText("");
+          CustomMsgBox->exec();
+         }
+        } 
+        else 
+        {
+        // CustomMsgBox->setIcon( QMessageBox::Critical );
+        // CustomMsgBox->setText("Invalid paramters selection");
+        // CustomMsgBox->setDetailedText("");
+        // CustomMsgBox->exec();
+        error=true; 
+        }       
+      }
+
+
+    }  
+    if(!binded && !error)
+    {
     socket->bind(PortNo);
     connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
-    Started = true;
-    QMessageBox *StartedMsgBox = new QMessageBox(this);
-    StartedMsgBox->setIcon( QMessageBox::NoIcon );
-    StartedMsgBox->setText("Started Plotting!");
-    QPushButton *btnOk =  StartedMsgBox->addButton( "OK", QMessageBox::RejectRole );
-    StartedMsgBox->setAttribute(Qt::WA_DeleteOnClose); // delete pointer after close
-    StartedMsgBox->show();
+    binded = true;
+    }
+    if(!error)
+    {
+     CustomMsgBox->setIcon( QMessageBox::NoIcon );
+     CustomMsgBox->setText("Started Plotting!");
+     CustomMsgBox->setDetailedText("");
+     CustomMsgBox->show();
+    }
+    if(error)
+    {
+     CustomMsgBox->setIcon( QMessageBox::NoIcon );
+     CustomMsgBox->setText("Invalid Custom Plot option is selected");
+     CustomMsgBox->setDetailedText("");
+     CustomMsgBox->show();  
+    }
+
+
    }
     if(windowsize <=0 || RMSLength <=0 )
     {
-    QMessageBox *WarningMsgBox = new QMessageBox(this);
-    WarningMsgBox->setIcon( QMessageBox::Critical );
-    WarningMsgBox->setText("Window size and/or RMS length   has not been entered correctly!!");
-    WarningMsgBox->setDetailedText("Enter a valid value for Window size and RMS Length ");
-    QPushButton *btnOK =  WarningMsgBox->addButton( "OK", QMessageBox::RejectRole );
-    WarningMsgBox->setAttribute(Qt::WA_DeleteOnClose); // delete pointer after close
-    WarningMsgBox->exec();
+    CustomMsgBox->setIcon( QMessageBox::Critical );
+    CustomMsgBox->setText("Window size and/or RMS length   has not been entered correctly!!");
+    CustomMsgBox->setDetailedText("Enter a valid value for Window size and RMS Length ");
+    CustomMsgBox->show();
     }
     if(PortNo <= 0)
     {
-    QMessageBox *PortMsgBox = new QMessageBox(this);
-    PortMsgBox->setIcon( QMessageBox::Critical );
-    PortMsgBox->setText("Invalid Port No");
-    QPushButton *btnOk =  PortMsgBox->addButton( "OK", QMessageBox::RejectRole );
-    PortMsgBox->setAttribute(Qt::WA_DeleteOnClose); // delete pointer after close
-    PortMsgBox->show();
+    CustomMsgBox->setIcon( QMessageBox::Critical );
+    CustomMsgBox->setText("Invalid Port No");
+    CustomMsgBox->setDetailedText("");
+    CustomMsgBox->show();
     }
 }
 
@@ -760,23 +571,19 @@ void MainWindow::on_CustomY1_activated(int index)
 {
     YAxisCustom1 = index;
 }
-
 void MainWindow::on_CustomY2_activated(int index)
 {
     YAxisCustom2 = index;
 }
-
 void MainWindow::on_CustomY3_activated(int index)
 {
     YAxisCustom3 = index;
 }
 
-
 void MainWindow::on_CustomY1_textActivated(const QString &arg1)
 {
     YAxisCustomLabel1= arg1;
 }
-
 void MainWindow::on_CustomY2_textActivated(const QString &arg1)
 {
     YAxisCustomLabel2= arg1;
@@ -786,32 +593,40 @@ void MainWindow::on_CustomY3_textActivated(const QString &arg1)
     YAxisCustomLabel3= arg1;
 }
 
-
 /*
  getting user input of how many different sensor values
  have to be plotted
 */
-void MainWindow::on_CustomPlotData1_toggled(bool checked)
+
+void MainWindow::on_comboBox_currentIndexChanged(int index)
 {
-    if(checked)
+  if(index == 0)
+   error=false;
+
+  if(!CustomGraph.Init)
+  {
+    if(index == 1)
     Custom1Init=1;
     else
-    Custom1Init =0;
-}
+    Custom1Init=0;
 
-void MainWindow::on_CustomPlotData12_toggled(bool checked)
-{
-    if(checked)
-    Custom2Init =1;
+    if(index == 2)
+    Custom2Init=1;
     else
-    Custom2Init =0;
-}
-
-void MainWindow::on_CustomPlotData123_toggled(bool checked)
-{
-    if(checked)
-    Custom3Init =1;
+    Custom2Init=0;
+    
+    if(index == 3)
+    Custom3Init=1;
     else
-    Custom3Init =0;
-
+    Custom3Init=0;
+  }
+  if(CustomGraph.Init == true)
+  {
+    CustomMsgBox->setIcon( QMessageBox::Warning );
+    CustomMsgBox->setText("An instance of custom plot is already running");
+    CustomMsgBox->setDetailedText("Another graph cannot be added plot");
+    CustomMsgBox->show();
+    error=true;
+  }
 }
+
