@@ -244,7 +244,7 @@ class MasterPlot: public  baseplot
   /*
   Methods to calculate Global and Local Maxima, Minima along with RMS
   */
-    void UpdateMinMax(QVector<double>&YAxisData1);
+    void  
     void UpdateMinMax(QVector<double>&YAxisData1,QVector<double>&YAxisData2);
     void UpdateMinMax(QVector<double>&YAxisData1,QVector<double>&YAxisData2,QVector<double>&YAxisData3);
 };
